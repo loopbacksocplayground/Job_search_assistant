@@ -37,15 +37,16 @@ In your fork, copy `config.example.yaml` to `config.yaml` and fill it in:
 
 ```yaml
 profile:
-  email: "you@example.com"
+  email: "you@example.com"        # for USAJobs API header
 
 searches:
-  - query: "senior product manager"
+  - query: "senior marketing manager"
     location: "remote"
-  - query: "UX designer"
-    location: "Austin, TX"
-  - query: "registered nurse"
+  - query: "physical therapist"
     location: "Chicago, IL"
+
+sources:
+  country: "USA"                  # change for non-US Indeed searches
 
 location:
   always_include_remote: true
@@ -55,8 +56,7 @@ location:
 
 scoring:
   prompt: |
-    Describe what a strong match looks like for you — your background,
-    what you're looking for, and what would make you skip a listing.
+    Describe your background and what makes a listing worth applying to.
     Claude uses this to score each job 1–10 and assign a tier.
 
 resumes:
@@ -73,12 +73,12 @@ Go to your fork → **Settings → Secrets and variables → Actions → New rep
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
-| `NOTIFY_EMAIL` | ✅ | Where to deliver the results email |
-| `GMAIL_USERNAME` | ✅ | Gmail address used to send the email |
+| `NOTIFY_EMAIL` | ✅ | Email address that receives the results report |
+| `GMAIL_USERNAME` | ✅ | Gmail address used to send the report |
 | `GMAIL_APP_PASSWORD` | ✅ | Gmail App Password *(see note below)* |
-| `ANTHROPIC_API_KEY` | Optional | Enables Claude AI scoring |
+| `ANTHROPIC_API_KEY` | Optional | Enables Claude AI scoring; without it keyword scoring is used |
 | `USAJOBS_API_KEY` | Optional | Enables US federal job listings ([free key](https://developer.usajobs.gov/APIRequest/Index)) |
-| `SLACK_WEBHOOK_URL` | Optional | Enables a Slack summary after each scan |
+| `SLACK_WEBHOOK_URL` | Optional | Sends a Slack summary after each scan |
 
 > **Gmail App Password:** This is not your regular Gmail password. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), create a new app password, and use that value. You must have 2-Step Verification enabled on your Google account.
 

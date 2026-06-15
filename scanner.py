@@ -60,6 +60,7 @@ SCORING_PROMPT = (_scoring.get("prompt") or "").strip()
 USE_INDEED     = bool(_sources.get("indeed",           True))
 USE_LINKEDIN   = bool(_sources.get("linkedin",         True))
 USE_USAJOBS    = bool(_sources.get("usajobs",          False))
+COUNTRY_INDEED = str(_sources.get("country",           "USA"))
 RESULTS_WANTED = int(_sources.get("results_per_query", 25))
 DAYS_OLD       = int(_sources.get("days_old",          14))
 CLAUDE_MODEL   = _scoring.get("model", "claude-haiku-4-5")
@@ -164,7 +165,7 @@ def fetch_jobs() -> list[dict]:
                 location=location,
                 results_wanted=RESULTS_WANTED,
                 hours_old=DAYS_OLD * 24,
-                country_indeed="USA",
+                country_indeed=COUNTRY_INDEED,
                 linkedin_fetch_description=True,
             )
             for _, row in df.iterrows():
