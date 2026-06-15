@@ -1,0 +1,65 @@
+name: Job Scan
+
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'    # 9 AM ET (UTC-4) on weekdays — edit to your preferred time
+  workflow_dispatch:            # run manually from the Actions tab any time
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scanner
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          USAJOBS_API_KEY:   ${{ secrets.USAJOBS_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python scanner.py
+
+      - name: Save seen jobs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f seen_jobs.csv ]; then
+            git add seen_jobs.csv
+            git diff --cached --quiet || git commit -m "chore: update seen_jobs.csv [skip ci]"
+            git push
+          fi
+
+      - name: Set scan date
+        if: always()
+        run: echo "SCAN_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Email results
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: ${{ secrets.GMAIL_USERNAME }}
+          subject: "Job Scan — ${{ env.SCAN_DATE }}"
+          body: |
+            Job scan complete for ${{ env.SCAN_DATE }}.
+            See the attached file for today's leads.
+          attachments: job_leads.html

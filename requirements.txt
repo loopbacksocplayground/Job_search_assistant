@@ -1,0 +1,4 @@
+anthropic
+python-jobspy
+requests
+pyyaml

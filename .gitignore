@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+job_leads.md
+job_leads.html
+_scan_summary.json
+resumes/
+.env

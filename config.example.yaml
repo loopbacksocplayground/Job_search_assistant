@@ -1,0 +1,115 @@
+# ── Job Search Assistant — config.example.yaml ────────────────────────────────
+# Copy this file to config.yaml, fill in your details, and commit it to your fork.
+# Secrets (API keys, passwords) stay in GitHub Secrets — not here.
+
+# ── Your profile ───────────────────────────────────────────────────────────────
+profile:
+  name: "Your Name"
+  email: "you@example.com"        # used as the User-Agent header for the USAJobs API
+
+# ── What to search for ─────────────────────────────────────────────────────────
+# Each entry becomes one search request. You can have as many as you like.
+# Location can be "remote", a city, a state, or a metro area.
+searches:
+  - query: "senior software engineer"
+    location: "remote"
+  - query: "backend engineer"
+    location: "San Francisco, CA"
+  - query: "python developer"
+    location: "New York, NY"
+
+# ── Job sources ────────────────────────────────────────────────────────────────
+sources:
+  indeed: true
+  linkedin: true
+  usajobs: false                  # US federal jobs only; requires USAJOBS_API_KEY secret
+  results_per_query: 25           # listings fetched per search query (max ~50 before rate limits)
+  days_old: 14                    # only include jobs posted within this many days
+
+# ── Location filtering ─────────────────────────────────────────────────────────
+# A job passes the filter if:
+#   (a) always_include_remote is true AND "remote" appears in the job's location, OR
+#   (b) the job's location contains any string from the include list
+#
+# A job is dropped if its location contains any string from the exclude list.
+# Exclusions take priority over inclusions. All matching is case-insensitive substring.
+#
+# Tip: if you leave include empty, every non-excluded location is accepted.
+location:
+  always_include_remote: true
+  include:
+    - "San Francisco"
+    - "New York"
+    - "Austin"
+  exclude:
+    - "United Kingdom"
+    - "Canada"
+    - "Australia"
+    - "India"
+    - "Germany"
+    - "France"
+    - "Italy"
+    - "Spain"
+    - "Brazil"
+    - "Saudi Arabia"
+    - "Philippines"
+    # Add any location you want to block
+
+# ── Scoring ────────────────────────────────────────────────────────────────────
+# The scanner sends each job's title, company, location, and description to Claude
+# along with your prompt below, then gets back a tier (A/B/C), score (1-10),
+# and a one-line reason.
+#
+# If ANTHROPIC_API_KEY is not set, it falls back to free keyword scoring using
+# boost_keywords below. Less nuanced, but zero cost.
+scoring:
+  model: "claude-haiku-4-5"       # cheapest capable Claude model (~$0.02-0.05/run for ~100 jobs)
+
+  # Write this as if you're briefing a recruiter on what makes a job worth applying to.
+  # Be specific — the more context you give, the better the scoring.
+  prompt: |
+    You are evaluating job listings for a senior backend engineer with 8 years of
+    Python and distributed systems experience.
+
+    Score highly for:
+    - Fully remote or remote-first positions in the United States
+    - Strong engineering culture (small teams, autonomy, high technical bar)
+    - Interesting distributed systems, data pipeline, or platform challenges
+    - Staff or principal IC scope (not management-heavy)
+
+    Score lower for:
+    - Junior or mid-level roles
+    - Roles requiring only Java or .NET with no Python
+    - Heavy sales or account management components
+    - Locations outside the United States
+
+  tier_a_min_score: 8             # score >= this → Tier A (apply this week)
+  tier_b_min_score: 6             # score >= this → Tier B (apply next week)
+                                  # below tier_b_min_score → Tier C (backup)
+
+  # Free keyword fallback (used when ANTHROPIC_API_KEY is not set).
+  # Each keyword found in the job title or description adds 0.5 to a base score of 5.
+  boost_keywords:
+    - "senior"
+    - "lead"
+    - "principal"
+    - "staff"
+    - "python"
+    - "remote"
+    - "distributed"
+
+# ── Resumes ────────────────────────────────────────────────────────────────────
+# File paths shown in output so you know which resume to send.
+# With a single entry, it's always used. With multiple, Claude will recommend one —
+# just mention the variants in your scoring prompt so it knows what each is for.
+resumes:
+  default: "resume.pdf"
+  # Example with multiple variants:
+  # general:  "resume_general.pdf"
+  # senior:   "resume_senior.pdf"
+  # startup:  "resume_startup.pdf"
+
+# ── Notifications ──────────────────────────────────────────────────────────────
+notifications:
+  email: "you@example.com"        # where to send the HTML report after each scan
+  slack: false                    # set to true and add SLACK_WEBHOOK_URL secret to enable
