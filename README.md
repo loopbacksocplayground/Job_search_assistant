@@ -2,7 +2,9 @@
 
 Automated job scanner that runs on GitHub Actions — no server, no local setup required.
 
-Fork it, fill in one config file, add a few secrets, and get a ranked list of new job listings delivered to your inbox on a schedule. Works for any field, any location.
+Fork it, fill in one config file, add a few secrets, and get a ranked list of new job listings delivered to your inbox on a schedule.
+
+Write your job searches and scoring criteria in plain English. The tool doesn't know or care what field you're in — it scores listings against whatever criteria you give it.
 
 **What it does:**
 - Searches Indeed, LinkedIn, and (optionally) USAJobs using your queries
@@ -38,10 +40,12 @@ profile:
   email: "you@example.com"
 
 searches:
-  - query: "senior software engineer"
+  - query: "senior product manager"
     location: "remote"
-  - query: "backend engineer"
-    location: "San Francisco, CA"
+  - query: "UX designer"
+    location: "Austin, TX"
+  - query: "registered nurse"
+    location: "Chicago, IL"
 
 location:
   always_include_remote: true
@@ -51,8 +55,9 @@ location:
 
 scoring:
   prompt: |
-    Evaluate this for a senior backend engineer with 8 years Python experience.
-    Score highly for remote-first, strong eng culture, distributed systems work.
+    Describe what a strong match looks like for you — your background,
+    what you're looking for, and what would make you skip a listing.
+    Claude uses this to score each job 1–10 and assign a tier.
 
 resumes:
   default: "resume.pdf"
