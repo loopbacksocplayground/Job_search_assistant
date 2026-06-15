@@ -1,104 +1,134 @@
 # Job Search Assistant
 
-Automated job scanner that runs on GitHub Actions — no server, no local setup required.
+Automated job scanner that fetches listings from Indeed, LinkedIn, and (optionally) USAJobs, scores them against your criteria, and delivers a ranked HTML report.
 
-Fork it, fill in one config file, add a few secrets, and get a ranked list of new job listings delivered to your inbox on a schedule.
-
-Write your job searches and scoring criteria in plain English. The tool doesn't know or care what field you're in — it scores listings against whatever criteria you give it.
+Write your searches and scoring criteria in plain English. The tool doesn't know or care what field you're in — it scores listings against whatever you tell it.
 
 **What it does:**
 - Searches Indeed, LinkedIn, and (optionally) USAJobs using your queries
 - Filters results by your location rules — remote, specific cities, or both
 - Scores each listing against your criteria using Claude AI or free keyword fallback
-- Ranks results into Tier A / B / C and emails you a styled HTML report
+- Ranks results into Tier A / B / C and outputs a styled HTML report
 - Tracks seen jobs so you only get new listings each run
 
 ---
 
-## Prerequisites
+## Setup — Option A: Run Locally
 
-- A GitHub account (free)
-- A Gmail account to send result emails from
-- An [Anthropic API key](https://console.anthropic.com/) *(optional — enables AI scoring; ~$0.02–0.05/run)*
+**Prerequisites:** Python 3.10+
 
-No server. No paid job board subscriptions. No local Python environment needed.
+**1. Clone this repo (or your fork):**
+
+```bash
+git clone https://github.com/loopbacksocplayground/Job_search_assistant.git
+cd Job_search_assistant
+```
+
+**2. Install dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+**3. Create your config:**
+
+```bash
+cp config.example.yaml config.yaml   # macOS / Linux
+copy config.example.yaml config.yaml  # Windows
+```
+
+Open `config.yaml` and fill in your searches, location rules, and scoring prompt. See `config.example.yaml` for the full reference with all available options.
+
+**4. (Optional) Set your API keys as environment variables:**
+
+```bash
+# macOS / Linux
+export ANTHROPIC_API_KEY=your-key-here
+export USAJOBS_API_KEY=your-key-here     # only if usajobs: true in config
+
+# Windows (PowerShell)
+$env:ANTHROPIC_API_KEY = "your-key-here"
+$env:USAJOBS_API_KEY   = "your-key-here"
+```
+
+Without `ANTHROPIC_API_KEY`, the scanner falls back to free keyword scoring using your `boost_keywords` list.
+
+**5. Run the scanner:**
+
+```bash
+python scanner.py
+```
+
+Results are written to `job_leads.html` and `job_leads.md` in the project folder. Open `job_leads.html` in a browser to review your leads.
+
+**6. Track your applications:**
+
+```bash
+python apply.py          # show your pipeline
+python apply.py add      # log a new application
+python apply.py update   # update an existing one
+```
 
 ---
 
-## Setup
+## Setup — Option B: Run on GitHub Actions (scheduled + emailed results)
 
-### 1. Fork this repo
+**Prerequisites:** A GitHub account and a Gmail account.
 
-Click **Fork** at the top right. Your fork is where your personal config lives.
+**1. Fork this repo:**
 
-### 2. Create your config
+Click **Fork** at the top right of this page. Your fork is where your personal config and data live.
 
-In your fork, copy `config.example.yaml` to `config.yaml` and fill it in:
+**2. Create your config:**
 
-```yaml
-profile:
-  email: "you@example.com"        # for USAJobs API header
+In your fork, copy `config.example.yaml` to `config.yaml`, fill it in, and commit it:
 
-searches:
-  - query: "senior marketing manager"
-    location: "remote"
-  - query: "physical therapist"
-    location: "Chicago, IL"
+```bash
+cp config.example.yaml config.yaml   # macOS / Linux
+copy config.example.yaml config.yaml  # Windows
 
-sources:
-  country: "USA"                  # change for non-US Indeed searches
-
-location:
-  always_include_remote: true
-  exclude:
-    - "United Kingdom"
-    - "India"
-
-scoring:
-  prompt: |
-    Describe your background and what makes a listing worth applying to.
-    Claude uses this to score each job 1–10 and assign a tier.
-
-resumes:
-  default: "resume.pdf"
+# edit config.yaml, then:
+git add config.yaml
+git commit -m "add config"
+git push
 ```
 
 Open `config.example.yaml` for the full reference with all available options.
 
-Commit `config.yaml` to your fork — the Actions workflow reads it at run time.
+**3. Add GitHub Secrets:**
 
-### 3. Add GitHub Secrets
-
-Go to your fork → **Settings → Secrets and variables → Actions → New repository secret**:
+Go to your fork → **Settings → Secrets and variables → Actions → New repository secret** and add each of the following:
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
 | `NOTIFY_EMAIL` | ✅ | Email address that receives the results report |
 | `GMAIL_USERNAME` | ✅ | Gmail address used to send the report |
 | `GMAIL_APP_PASSWORD` | ✅ | Gmail App Password *(see note below)* |
-| `ANTHROPIC_API_KEY` | Optional | Enables Claude AI scoring; without it keyword scoring is used |
-| `USAJOBS_API_KEY` | Optional | Enables US federal job listings ([free key](https://developer.usajobs.gov/APIRequest/Index)) |
+| `ANTHROPIC_API_KEY` | Optional | Enables Claude AI scoring; without it, keyword scoring is used |
+| `USAJOBS_API_KEY` | Optional | Enables US federal job listings ([get a free key](https://developer.usajobs.gov/APIRequest/Index)) |
 | `SLACK_WEBHOOK_URL` | Optional | Sends a Slack summary after each scan |
 
-> **Gmail App Password:** This is not your regular Gmail password. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), create a new app password, and use that value. You must have 2-Step Verification enabled on your Google account.
+> **Gmail App Password:** This is not your regular Gmail password. You must first enable 2-Step Verification on your Google account, then go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) and generate a new app password. Use that value here.
 
-### 4. Enable Actions
+**4. Enable Actions:**
 
-Go to your fork → **Actions** tab → enable workflows if prompted.
+Go to your fork → **Actions** tab → click **Enable workflows** if prompted.
 
-Done. The scanner runs on schedule automatically. You can also trigger it manually from the **Actions** tab any time.
+**5. (Optional) Adjust the schedule:**
 
----
-
-## Adjusting the schedule
-
-Edit the `cron` line in `.github/workflows/scan.yml`:
+The scanner runs weekdays at 9 AM ET by default. To change it, edit the `cron` line in `.github/workflows/scan.yml`:
 
 ```yaml
 - cron: '0 13 * * 1-5'    # UTC — 9 AM ET, Monday–Friday
 ```
 
-Use [crontab.guru](https://crontab.guru) to generate any schedule you want.
+Use [crontab.guru](https://crontab.guru) to build any schedule you want.
+
+**6. Trigger your first run:**
+
+Go to your fork → **Actions** → **Job Scan** → **Run workflow**. Check the run log to confirm everything works, then let it run on schedule from there.
+
+After each run, results are emailed to `NOTIFY_EMAIL` as a styled HTML attachment. Seen jobs are committed back to `seen_jobs.csv` automatically so you only receive new listings next time.
 
 ---
 
