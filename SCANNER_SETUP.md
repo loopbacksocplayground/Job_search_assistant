@@ -11,7 +11,7 @@ Two ways to run Job Search Assistant: locally on your machine, or automatically 
 ### 1. Clone this repo (or your fork)
 
 ```bash
-git clone https://github.com/loopbacksocplayground/Job_search_assistant.git
+git clone https://github.com/loopbacksocplayground/job_search_assistant.git
 cd Job_search_assistant
 ```
 
