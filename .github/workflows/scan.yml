@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Write config
+        run: printf '%s\n' "$CONFIG_YAML" > config.yaml
+        env:
+          CONFIG_YAML: ${{ secrets.CONFIG_YAML }}
+
       - name: Run scanner
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -47,8 +52,18 @@ jobs:
         if: always()
         run: echo "SCAN_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: Email results
+      - name: Check for leads file
+        id: check_leads
         if: always()
+        run: |
+          if [ -f job_leads.html ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Email results
+        if: always() && steps.check_leads.outputs.exists == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -63,3 +78,19 @@ jobs:
             Job scan complete for ${{ env.SCAN_DATE }}.
             See the attached file for today's leads.
           attachments: job_leads.html
+
+      - name: Email results (no leads)
+        if: always() && steps.check_leads.outputs.exists != 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: ${{ secrets.GMAIL_USERNAME }}
+          subject: "Job Scan — ${{ env.SCAN_DATE }}"
+          body: |
+            Job scan ran on ${{ env.SCAN_DATE }} but found no new leads.
+            This may mean all current listings have already been seen, or the scan encountered an error.

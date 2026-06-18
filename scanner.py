@@ -34,9 +34,12 @@ if hasattr(sys.stdout, "reconfigure"):
 def load_config() -> dict:
     path = Path("config.yaml")
     if not path.exists():
-        sys.exit("config.yaml not found. Copy config.example.yaml → config.yaml and fill it in.")
+        sys.exit("config.yaml not found. Add a CONFIG_YAML secret to your GitHub repo.")
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        cfg = yaml.safe_load(f) or {}
+    if not cfg.get("searches"):
+        sys.exit("config.yaml has no searches defined. Check your CONFIG_YAML secret.")
+    return cfg
 
 CFG = load_config()
 
